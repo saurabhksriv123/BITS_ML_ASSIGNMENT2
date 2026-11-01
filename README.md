@@ -101,3 +101,10 @@ The app loads the saved `.joblib` models and only predicts and evaluates; it nev
 pip install -r requirements.txt
 python model/train_models.py   # optional: retrains models and regenerates test_data.csv
 streamlit run app.py
+```
+
+## Deployment (Streamlit Community Cloud)
+
+1. Go to https://streamlit.io/cloud and sign in with GitHub.
+2. Click **New app**, select this repository, branch `main`, and main file `app.py`.
+3. Under **Advanced settings**, choose **Python 3.12** (or newer), then click **Deploy**.
