@@ -20,8 +20,6 @@ from sklearn.metrics import (accuracy_score, classification_report,
                              precision_score, recall_score, roc_auc_score)
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_DIR = BASE_DIR / "model"
-SAMPLE_TEST_FILE = BASE_DIR / "test_data.csv"
 TARGET = "diagnosis"
 CLASS_NAMES = ["Benign (0)", "Malignant (1)"]
 
@@ -37,14 +35,53 @@ st.set_page_config(page_title="Breast Cancer Classifier Comparison", page_icon="
 
 
 # ------------------------------------------------------------------ loading
+def find_file(name):
+    """Locate a file in the repo: model/ first, then the app folder, then any subfolder.
+
+    The match ignores upper/lower case, because the deployment server (Linux) is
+    case-sensitive while Windows is not (e.g. a folder named 'Model').
+    """
+    for candidate in (BASE_DIR / "model" / name, BASE_DIR / name):
+        if candidate.is_file():
+            return candidate
+    target = name.lower()
+    for path in sorted(BASE_DIR.rglob("*")):
+        if path.is_file() and path.name.lower() == target and ".git" not in path.parts:
+            return path
+    return None
+
+
+def required_files():
+    names = list(MODEL_FILES.values()) + ["feature_names.json"]
+    found = {n: find_file(n) for n in names}
+    missing = [n for n, p in found.items() if p is None]
+    return found, missing
+
+
+def show_missing_files_error(missing):
+    st.error(
+        "The app could not find these required file(s) in the GitHub repository:\n\n"
+        + "\n".join(f"- `{m}`" for m in missing)
+        + "\n\nUpload them into a folder named `model` (all lowercase) next to `app.py`, "
+          "commit, then reboot the app."
+    )
+    repo_files = sorted(
+        str(p.relative_to(BASE_DIR)) for p in BASE_DIR.rglob("*")
+        if p.is_file() and ".git" not in p.parts
+    )
+    with st.expander("Files the app can currently see in the repository"):
+        st.code("\n".join(repo_files) or "(none)")
+    st.stop()
+
+
 @st.cache_resource
-def load_models():
-    return {name: joblib.load(MODEL_DIR / fname) for name, fname in MODEL_FILES.items()}
+def load_models(paths):
+    return {name: joblib.load(paths[fname]) for name, fname in MODEL_FILES.items()}
 
 
 @st.cache_data
-def load_feature_names():
-    with open(MODEL_DIR / "feature_names.json") as f:
+def load_feature_names(path):
+    with open(path) as f:
         return json.load(f)
 
 
@@ -93,8 +130,12 @@ st.caption(
     "target `diagnosis` (1 = malignant, 0 = benign). Models are pre-trained; the app only evaluates."
 )
 
-models = load_models()
-features = load_feature_names()
+found, missing = required_files()
+if missing:
+    show_missing_files_error(missing)
+models = load_models({n: str(p) for n, p in found.items()})
+features = load_feature_names(str(found["feature_names.json"]))
+SAMPLE_TEST_FILE = find_file("test_data.csv")
 
 with st.sidebar:
     st.header("1. Test data")
@@ -102,7 +143,7 @@ with st.sidebar:
                                 help="Must contain all 30 feature columns and the `diagnosis` column.")
     use_sample = st.checkbox("Use bundled test_data.csv", value=uploaded is None,
                              help="Held-out 20% test split used in the experiments.")
-    if SAMPLE_TEST_FILE.exists():
+    if SAMPLE_TEST_FILE is not None:
         st.download_button("Download sample test_data.csv", SAMPLE_TEST_FILE.read_bytes(),
                            file_name="test_data.csv", mime="text/csv")
 
@@ -113,7 +154,7 @@ with st.sidebar:
 if uploaded is not None:
     df = pd.read_csv(uploaded)
     source = f"Uploaded file: **{uploaded.name}**"
-elif use_sample and SAMPLE_TEST_FILE.exists():
+elif use_sample and SAMPLE_TEST_FILE is not None:
     df = pd.read_csv(SAMPLE_TEST_FILE)
     source = "Bundled file: **test_data.csv**"
 else:
