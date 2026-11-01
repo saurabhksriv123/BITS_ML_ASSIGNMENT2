@@ -24,7 +24,7 @@ Breast cancer is one of the most common cancers, and early, accurate diagnosis o
 
 ## c. GitHub Repository Link
 
-https://github.com/your-username/ml-classification-streamlit  *(replace with your repository link)*
+https://github.com/saurabhksriv123/BITS_ML_ASSIGNMENT2/
 
 ### Repository structure
 
@@ -84,7 +84,7 @@ AUC is computed from predicted probabilities; for the SVM, which does not output
 
 ## Streamlit app
 
-Live app: https://your-app-name.streamlit.app  *(replace with your Streamlit app link)*
+Live app: https://bitsmlassignment2-pleasefollow.streamlit.app/*
 
 Features:
 - **Dataset upload (CSV):** upload test data only; the CSV must contain all 30 feature columns and the `diagnosis` column. The bundled `test_data.csv` can be used or downloaded from the sidebar.
